@@ -4,17 +4,31 @@
 #include <string>
 #include <sstream>
 
-bool is_invalid_id(auto id) {
-  auto id_str = std::to_string(id);
-
+bool is_part1_invalid_id(std::string& id) {
   // invalid ids have even length
-  if (id_str.length() % 2 != 0)
+  if (id.length() % 2 != 0)
     return false;
 
-  auto first = id_str.substr(0, id_str.length() / 2);
-  auto second = id_str.substr(id_str.length() / 2);
+  auto first = id.substr(0, id.length() / 2);
+  auto second = id.substr(id.length() / 2);
 
   return first == second;
+}
+
+bool is_part2_invalid_id(std::string& id) {
+  for (int part_count = 2; part_count <= id.length(); part_count++) {
+    if (id.length() % part_count == 0) {
+      auto split_str = id.substr(0, id.length() / part_count);
+      std::string combined_str;
+      for (int i = 0; i < part_count; i++)
+        combined_str += split_str;
+
+      if (combined_str == id)
+        return true;
+    }
+  }
+
+  return false;
 }
 
 int main(int argc, char** argv) {
@@ -34,25 +48,29 @@ int main(int argc, char** argv) {
       out = &fout;
     }
 
-    long long invalid_id_count{};
+    long long part1_invalid_id_count{};
+    long long part2_invalid_id_count{};
 
     std::string range;
     while (std::getline(fin, range, ',')) {
       auto pos = range.find('-');
       assert(pos != std::string::npos);
 
-      auto from_str = range.substr(0, pos);
-      auto to_str = range.substr(pos + 1);
+      auto from = std::stoll(range.substr(0, pos));
+      auto to = std::stoll(range.substr(pos + 1));
 
-      auto from = std::stoll(from_str);
-      auto to = std::stoll(to_str);
+      for (auto i = from; i <= to; i++) {
+        auto id = std::to_string(i);
+        if (is_part1_invalid_id(id))
+          part1_invalid_id_count += i;
 
-      for (auto i = from; i <= to; i++)
-        if (is_invalid_id(i))
-          invalid_id_count += i;
+        if (is_part2_invalid_id(id))
+          part2_invalid_id_count += i;
+      }
     }
 
-    *out << invalid_id_count << std::endl;
+    *out << "part1: " << part1_invalid_id_count << std::endl;
+    *out << "part2: " << part2_invalid_id_count << std::endl;
 
     return EXIT_SUCCESS;
  } catch (std::exception& e) {
