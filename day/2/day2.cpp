@@ -2,7 +2,6 @@
 #include <fstream>
 #include <cassert>
 #include <string>
-#include <sstream>
 
 bool is_part1_invalid_id(std::string& id) {
   // invalid ids have even length
@@ -48,8 +47,7 @@ int main(int argc, char** argv) {
       out = &fout;
     }
 
-    long long part1_invalid_id_count{};
-    long long part2_invalid_id_count{};
+    long long invalid_id_count[2]{};
 
     std::string range;
     while (std::getline(fin, range, ',')) {
@@ -61,16 +59,17 @@ int main(int argc, char** argv) {
 
       for (auto i = from; i <= to; i++) {
         auto id = std::to_string(i);
+
         if (is_part1_invalid_id(id))
-          part1_invalid_id_count += i;
+          invalid_id_count[0] += i;
 
         if (is_part2_invalid_id(id))
-          part2_invalid_id_count += i;
+          invalid_id_count[1] += i;
       }
     }
 
-    *out << "part1: " << part1_invalid_id_count << std::endl;
-    *out << "part2: " << part2_invalid_id_count << std::endl;
+    *out << "part1: " << invalid_id_count[0] << std::endl;
+    *out << "part2: " << invalid_id_count[1] << std::endl;
 
     return EXIT_SUCCESS;
  } catch (std::exception& e) {
