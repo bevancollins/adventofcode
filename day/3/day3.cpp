@@ -2,25 +2,24 @@
 #include <fstream>
 #include <cassert>
 #include <string>
-#include <string_view>
-#include <algorithm>
-#include <utility>
 
-int largest_joltage(std::string_view batteries) {
-  if (batteries.length() < 2)
-    return 0;
+long long largest_joltage(const std::string& batteries, int battery_count) {
+  assert(batteries.length() >= battery_count);
 
-  char digits[3]{
-    batteries[0],
-    batteries[1],
-    '\0'
-  };
-  for (size_t i = 2; i < batteries.length(); i++)
-    digits[1] = std::max(digits[1], batteries[i]);
+  std::string joltage;
 
-  auto joltage = std::stoi(digits);
+  int pos{};
+  for (int i = 0; i < battery_count; i++) {
+    int highest_pos{pos};
+    for (int j = pos + 1; j <= batteries.length() - (battery_count - i); j++) {
+      if (batteries[j] > batteries[highest_pos])
+        highest_pos = j;
+    }
+    pos = highest_pos + 1;
+    joltage += batteries[highest_pos];
+  }
 
-  return std::max(joltage, largest_joltage(batteries.substr(1)));
+  return std::stoll(joltage);
 }
 
 int main(int argc, char** argv) {
@@ -40,16 +39,15 @@ int main(int argc, char** argv) {
       out = &fout;
     }
 
-    long long total{};
+    long long totals[2]{};
     std::string line;
     while(std::getline(fin, line)) {
-      auto joltage = largest_joltage(line);
-      *out << joltage << std::endl;
-
-      total += joltage;
+      totals[0] += largest_joltage(line, 2);
+      totals[1] += largest_joltage(line, 12);
     }
 
-    std::cout << "part1: " << total << std::endl;
+    *out << "part1: " << totals[0] << std::endl;
+    *out << "part2: " << totals[1] << std::endl;
 
     return EXIT_SUCCESS;
  } catch (std::exception& e) {
