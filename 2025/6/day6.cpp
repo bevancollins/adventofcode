@@ -3,50 +3,86 @@
 #include <cassert>
 #include <string>
 #include <vector>
-#include <sstream>
 
-std::string parse_operations(const std::string& line) {
-  std::string operations(line);
-  std::erase(operations, ' ');
+struct Column {
+  char operation{};
+  int width{};
+  int pos{};
+};
 
-  return operations;
-}
+std::vector<Column> parse_operations(const std::string& line) {
+  std::vector<Column> columns;
 
-std::vector<int> parse_numbers(const std::string& line) {
-  std::vector<int> numbers;
-  std::stringstream ss(line);
-  while (!ss.eof()) {
-    int number{};
-    ss >> number;
-    if (number == 0 && ss.fail())
-      break;
-    numbers.push_back(number);
+  int pos{};
+  for (char c : line) {
+    if (c != ' ') {
+      if (!columns.empty())
+        columns.back().width--;
+
+      columns.emplace_back(c, 0, pos);
+    }
+
+    columns.back().width++;
+    pos++;
   }
 
-  return numbers;
+  return columns;
 }
 
-long long sum_operations(const std::vector<std::vector<int>>& matrix, const std::string& operations) {
+std::vector<std::string> parse_line_values(const std::string& line, const std::vector<Column>& columns) {
+  std::vector<std::string> values;
+  for (const auto& column : columns) {
+    auto str = line.substr(column.pos, column.width);
+    values.push_back(str);
+  }
+
+  return values;
+}
+
+std::vector<long long> column_values(int column_index, const std::vector<std::vector<std::string>>& matrix) {
+  std::vector<long long> col_values;
+
+  for (const auto& row_values : matrix)
+    col_values.push_back(std::stoll(row_values[column_index]));
+
+  return col_values;
+}
+
+std::vector<long long> cephalopod_column_values(int column_index, const std::vector<std::vector<std::string>>& matrix) {
+  std::vector<long long> col_values;
+
+  auto column_width = matrix[0][column_index].length();
+  for (int i = 0; i < column_width; i++) {
+    std::string value;
+    for (const auto& row_values : matrix)
+      value.push_back(row_values[column_index][i]);
+
+    col_values.push_back(std::stoll(value));
+  }
+
+  return col_values;
+}
+
+long long do_operation(char operation, const std::vector<long long> values) {
+  long long total{};
+  
+  for (long long value : values) {
+    if (total == 0)
+      total = value;
+    else if (operation == '*')
+      total *= value;
+    else
+      total += value;
+  }
+
+  return total;
+}
+
+long long sum_operations(const std::vector<Column>& columns, const std::vector<std::vector<std::string>>& matrix, auto col_function) {
   long long grand_total{};
-
-  for (int i = 0; i < operations.size(); i++) {
-    bool first_operation = true;
-    long long total{};
-    for (const auto& numbers : matrix) {
-      assert(numbers.size() > i);
-
-      assert(operations[i] == '*' || operations[i] == '+');
-      if (first_operation) {
-        first_operation = false;
-        total = numbers[i];
-      } else {
-        if (operations[i] == '*')
-          total *= numbers[i];
-        else
-          total += numbers[i];
-      }
-    }
-    grand_total += total;
+  for (int i = 0; i < columns.size(); i++) {
+    auto values = col_function(i, matrix);
+    grand_total += do_operation(columns[i].operation, values);
   }
 
   return grand_total;
@@ -69,21 +105,26 @@ int main(int argc, char** argv) {
       out = &fout;
     }
 
-    std::vector<std::vector<int>> numbers;
-    std::string operations;
+    std::vector<Column> columns;
+
     std::string line;
+    while(std::getline(fin, line))
+      if (line.find_first_of("*+") != std::string::npos)
+        columns = parse_operations(line);
+
+    fin.clear();
+    fin.seekg(0);
+
+    std::vector<std::vector<std::string>> matrix;
+    int line_number{};
     while(std::getline(fin, line)) {
-      if (line.find_first_of("+*") != std::string::npos) {
-        operations = parse_operations(line);
-        break;
-      } else {
-        numbers.push_back(parse_numbers(line));
-      }
+      if (line.find_first_of("*+") == std::string::npos)
+        matrix.push_back(parse_line_values(line, columns));
     }
 
-    auto total = sum_operations(numbers, operations);
-
-    *out << total << std::endl;
+    *out
+      << "part 1: " << sum_operations(columns, matrix, &column_values) << std::endl
+      << "part 2: " << sum_operations(columns, matrix, &cephalopod_column_values) << std::endl;
 
     return EXIT_SUCCESS;
  } catch (std::exception& e) {
