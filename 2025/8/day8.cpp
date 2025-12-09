@@ -91,7 +91,8 @@ std::vector<Circuit> make_connections(const std::vector<JunctionBox*> junction_b
   auto distances = calculate_distances(junction_boxes);
   std::sort(distances.rbegin(), distances.rend());  // sort distances descending
 
-  for (int i = 0; i < connection_count && !distances.empty(); i++) {
+  for (int i = 0; i < connection_count; i++) {
+    assert(!distances.empty());
     const auto shortest_distance = distances.back();
 
     // find the circuits the junction boxes are attached to
@@ -111,6 +112,44 @@ std::vector<Circuit> make_connections(const std::vector<JunctionBox*> junction_b
   }
 
   return circuits;
+}
+
+// returns final junction boxes connected
+std::pair<JunctionBox*, JunctionBox*> make_all_connections(const std::vector<JunctionBox*> junction_boxes) {
+  // initially all junction boxes belong to their own circuit
+  std::vector<Circuit> circuits;
+  for (const auto& jb : junction_boxes) {
+    std::set<JunctionBox*> s{jb};
+    circuits.emplace_back(s);
+  }
+
+  auto distances = calculate_distances(junction_boxes);
+  std::sort(distances.rbegin(), distances.rend());  // sort distances descending
+
+  std::pair<JunctionBox*, JunctionBox*> final_connection;
+  while (circuits.size() > 1) {
+    assert(!distances.empty());
+    const auto shortest_distance = distances.back();
+
+    // find the circuits the junction boxes are attached to
+    auto first_circuit = find_circuit(circuits, shortest_distance.junction_boxes.first);
+    assert(first_circuit != circuits.end());
+
+    auto second_circuit = find_circuit(circuits, shortest_distance.junction_boxes.second);
+    assert(second_circuit != circuits.end());
+
+    if (first_circuit != second_circuit) {
+      // merge the circuits
+      first_circuit->juction_boxes.merge(second_circuit->juction_boxes);
+      circuits.erase(second_circuit);
+
+      final_connection = shortest_distance.junction_boxes;
+    }
+
+    distances.pop_back();
+  }
+
+  return final_connection;
 }
 
 int main(int argc, char** argv) {
@@ -137,13 +176,17 @@ int main(int argc, char** argv) {
     std::sort(circuits.rbegin(), circuits.rend());
 
     assert(circuits.size() >= 3);
-    auto total =
+    auto part1 =
       circuits[0].juction_boxes.size() *
       circuits[1].juction_boxes.size() *
       circuits[2].juction_boxes.size();
 
+    auto final_connection = make_all_connections(junction_boxes);
+    auto part2 = final_connection.first->location.x * final_connection.second->location.x;
+
     *out
-      << total << std::endl;
+      << "part 1: " << part1 << std::endl
+      << "part 2: " << part2 << std::endl;
 
     return EXIT_SUCCESS;
  } catch (std::exception& e) {
